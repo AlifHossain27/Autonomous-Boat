@@ -8,7 +8,6 @@ A simple boat which receives coordinates via flutter app and moves towards the t
 - GND → GND
 - TX (Transmit) → Arduino Pin 4
 - RX (Receive) → Arduino Pin 3
-- Connect RX/TX pins to Arduino TX/RX (crossed connection).
 ### Bluetooth (HC-05):
 - VCC → 5V
 - GND → GND
@@ -29,7 +28,7 @@ A simple boat which receives coordinates via flutter app and moves towards the t
 - GND → GND
 - Signal Pin → Arduino Pin 9
 ### Brushless Motor with ESC:
-- ESC signal wire → Arduino PWM Pin 6.
+- ESC signal wire → Arduino Pin 6.
 - ESC power input connected to a LiPo battery.
 - Brushless motor connected to ESC.
 ### LCD Display:
