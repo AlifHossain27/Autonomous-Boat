@@ -42,7 +42,7 @@ Servo rudder;
 Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345);
 
 // Speed Control Variables
-int motorSpeed = 1200; // Initial speed (ESC values: 1000 - 2000)
+int motorSpeed = 1200; 
 
 // Functions
 void setup() {
