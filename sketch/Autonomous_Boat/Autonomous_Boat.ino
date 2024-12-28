@@ -28,6 +28,11 @@ float targetLat = 0.0;
 float targetLon = 0.0;
 bool targetSet = false;
 
+// Return Coordinates
+float returnLat = 0.0;
+float returnLon = 0.0;
+bool returning = false;
+
 // Initialize GPS
 TinyGPSPlus gps;
 SoftwareSerial gpsSerial(RXPin, TXPin);
@@ -42,7 +47,7 @@ Servo rudder;
 Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345);
 
 // Speed Control Variables
-int motorSpeed = 1200; 
+int motorSpeed = 1200;
 
 // Functions
 void setup() {
@@ -60,7 +65,7 @@ void setup() {
 
   // Servo Initialization
   rudder.attach(RUDDER_PIN);
-  rudder.write(90); 
+  rudder.write(90);
 
   // ESC Initialization
   pinMode(ESC_PIN, OUTPUT);
@@ -117,13 +122,20 @@ void handleBluetooth() {
     if (commaIndex != -1) {
       String latString = command.substring(0, commaIndex);
       String lonString = command.substring(commaIndex + 1);
-      
+
       targetLat = latString.toFloat();
       targetLon = lonString.toFloat();
       targetSet = true;
+
+      if (gps.location.isValid()) {
+        returnLat = gps.location.lat();
+        returnLon = gps.location.lng();
+        returning = false;
+      }
+
       lcd.setCursor(0, 0);
-      lcd.print("Target Recieved");
-      bluetoothSerial.println("HC-05 > Target Recieved");
+      lcd.print("Target Received");
+      bluetoothSerial.println("HC-05 > Target Received");
       delay(1000);
     } else {
       bluetoothSerial.println("HC-05 > Invalid Coordinates");
@@ -140,19 +152,38 @@ void handleGPS() {
       float distance = TinyGPSPlus::distanceBetween(currentLat, currentLon, targetLat, targetLon);
       float targetDirection = TinyGPSPlus::courseTo(currentLat, currentLon, targetLat, targetLon);
 
+      String currentCoords = "Lat: " + String(currentLat, 6) + ", Lon: " + String(currentLon, 6);
+      bluetoothSerial.println(currentCoords);
+      Serial.println(currentCoords);
 
-      if (distance < 1) { 
-        controlSpeed(0);
-        rudder.write(90); 
-        targetSet = false; 
+      if (distance < 1) { // Reached the target
+        controlSpeed(0); // Stop the motor
+        rudder.write(90); // Straighten the rudder
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print("Target Reached!");
         bluetoothSerial.println("HC-05 > Target Reached!");
+
+        if (!returning) { // If at target coordinates
+          delay(5000); // Wait for 5 seconds
+          targetLat = returnLat; // Set return coordinates as new target
+          targetLon = returnLon;
+          returning = true;
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("Returning...");
+          bluetoothSerial.println("HC-05 > Returning...");
+        } else {
+          targetSet = false; // Stop navigation
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("Back at Start!");
+          bluetoothSerial.println("HC-05 > Back at Start!");
+        }
         return;
       }
 
-      // Display current coordinates
+      // Display current coordinates on LCD
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("Cur: ");
@@ -161,7 +192,6 @@ void handleGPS() {
       lcd.print(currentLon, 6); // Current Longitude
 
       delay(1000);
-
       // Display target coordinates 
       lcd.clear();
       lcd.setCursor(0, 0);
@@ -170,7 +200,6 @@ void handleGPS() {
       lcd.print(targetLat, 6); // Target Latitude
       lcd.setCursor(8, 1);
       lcd.print(targetLon, 6); // Target Longitude
-
       adjustRudder(targetDirection);
 
       controlSpeed(distance);
@@ -209,7 +238,7 @@ void controlSpeed(float distance) {
   if (distance < 10) {
     motorSpeed = 1100;
   } else if (distance < 50) {
-    motorSpeed = 1300; 
+    motorSpeed = 1300;
   } else {
     motorSpeed = 1500;
   }
@@ -229,7 +258,7 @@ bool detectObstacle() {
   long duration = pulseIn(ECHO_PIN, HIGH);
   int distance = duration * 0.034 / 2;
 
-  return distance < 30; 
+  return distance < 30;
 }
 
 // ESC arming logic
